@@ -19,7 +19,7 @@ impl<T> VecTree<T> {
             last_child: None,
             previous_sibling: None,
             next_sibling: None,
-            data: data,
+            data: Some(data),
         });
 
         NodeId { index }
@@ -75,6 +75,18 @@ impl<T> VecTree<T> {
             self.nodes[parent.index].first_child = next_sibling;
         }
     }
+
+    pub fn borrow_data(&self, node_id: NodeId) -> &T {
+        let node = &self.nodes[node_id.index];
+
+        node.data.as_ref().unwrap()
+    }
+
+    pub fn take_data(&mut self, node_id: NodeId) -> T {
+        let node = &mut self.nodes[node_id.index];
+
+        node.data.take().unwrap()
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -92,7 +104,7 @@ pub struct Node<T> {
     first_child: Option<NodeId>,
     last_child: Option<NodeId>,
 
-    pub data: T,
+    pub data: Option<T>,
 }
 
 impl<T> Node<T> {
@@ -172,5 +184,13 @@ mod tests {
         tree.append_child(root_node_id, child_node_id_2);
 
         assert!(tree.nodes.len() == 3, "it should have 3 nodes in the tree");
+        assert!(
+            *tree.borrow_data(root_node_id) == 1,
+            "it should have 1 as data"
+        );
+        assert!(
+            tree.take_data(child_node_id_2) == 3,
+            "it should have 1 as data"
+        );
     }
 }
