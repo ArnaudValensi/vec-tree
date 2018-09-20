@@ -82,6 +82,12 @@ impl<T> VecTree<T> {
         node.data.as_ref().unwrap()
     }
 
+    pub fn borrow_data_mut(&mut self, node_id: NodeId) -> &mut T {
+        let node = &mut self.nodes[node_id.index];
+
+        node.data.as_mut().unwrap()
+    }
+
     pub fn take_data(&mut self, node_id: NodeId) -> T {
         let node = &mut self.nodes[node_id.index];
 
