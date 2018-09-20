@@ -1,0 +1,7 @@
+[package]
+name = "vec-tree"
+version = "0.1.0"
+authors = ["Arnaud Valensi <arnaud.valensi@gmail.com>"]
+edition = "2018"
+
+[dependencies]
