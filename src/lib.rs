@@ -194,9 +194,15 @@ mod tests {
             *tree.borrow_data(root_node_id) == 1,
             "it should have 1 as data"
         );
+
         assert!(
-            tree.take_data(child_node_id_2) == 3,
+            tree.take_data(child_node_id_1) == 2,
             "it should have 1 as data"
         );
+
+        let child_node_id_2_mut_borrow = tree.borrow_data_mut(child_node_id_2);
+        *child_node_id_2_mut_borrow = 4;
+
+        assert!(*child_node_id_2_mut_borrow == 4, "it should have 1 as data");
     }
 }
