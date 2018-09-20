@@ -1,3 +1,4 @@
+use core::ops;
 use std::{cmp, fmt, mem};
 
 #[derive(Debug)]
@@ -5,11 +6,28 @@ pub struct VecTree<T> {
     nodes: Vec<Node<T>>,
 }
 
+#[derive(Debug)]
+pub struct Node<T> {
+    parent: Option<NodeId>,
+    previous_sibling: Option<NodeId>,
+    next_sibling: Option<NodeId>,
+    first_child: Option<NodeId>,
+    last_child: Option<NodeId>,
+
+    pub data: T,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct NodeId {
+    index: usize,
+}
+
 impl<T> VecTree<T> {
     pub fn new() -> VecTree<T> {
         VecTree { nodes: Vec::new() }
     }
 
+    #[inline]
     pub fn new_node(&mut self, data: T) -> NodeId {
         let index = self.nodes.len();
 
@@ -19,7 +37,7 @@ impl<T> VecTree<T> {
             last_child: None,
             previous_sibling: None,
             next_sibling: None,
-            data: Some(data),
+            data,
         });
 
         NodeId { index }
@@ -30,20 +48,20 @@ impl<T> VecTree<T> {
 
         let last_child_opt;
         {
-            let (self_borrow, new_child_borrow) = self.nodes.get_pair_mut(
+            let (node, new_child_node) = self.nodes.get_pair_mut(
                 node_id.index,
                 new_child_id.index,
                 "Can not append a node to itself",
             );
 
-            new_child_borrow.parent = Some(node_id);
+            new_child_node.parent = Some(node_id);
 
-            last_child_opt = mem::replace(&mut self_borrow.last_child, Some(new_child_id));
+            last_child_opt = mem::replace(&mut node.last_child, Some(new_child_id));
             if let Some(last_child) = last_child_opt {
-                new_child_borrow.previous_sibling = Some(last_child);
+                new_child_node.previous_sibling = Some(last_child);
             } else {
-                debug_assert!(self_borrow.first_child.is_none());
-                self_borrow.first_child = Some(new_child_id);
+                debug_assert!(node.first_child.is_none());
+                node.first_child = Some(new_child_id);
             }
         }
 
@@ -76,41 +94,19 @@ impl<T> VecTree<T> {
         }
     }
 
-    pub fn borrow_data(&self, node_id: NodeId) -> &T {
-        let node = &self.nodes[node_id.index];
-
-        node.data.as_ref().unwrap()
+    pub fn get(&self, node_id: NodeId) -> Option<&T> {
+        match self.nodes.get(node_id.index) {
+            Some(Node { ref data, .. }) => Some(data),
+            _ => None,
+        }
     }
 
-    pub fn borrow_data_mut(&mut self, node_id: NodeId) -> &mut T {
-        let node = &mut self.nodes[node_id.index];
-
-        node.data.as_mut().unwrap()
+    pub fn get_mut(&mut self, node_id: NodeId) -> Option<&mut T> {
+        match self.nodes.get_mut(node_id.index) {
+            Some(Node { ref mut data, .. }) => Some(data),
+            _ => None,
+        }
     }
-
-    pub fn take_data(&mut self, node_id: NodeId) -> T {
-        let node = &mut self.nodes[node_id.index];
-
-        node.data.take().unwrap()
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct NodeId {
-    index: usize,
-}
-
-impl NodeId {}
-
-#[derive(Debug)]
-pub struct Node<T> {
-    parent: Option<NodeId>,
-    previous_sibling: Option<NodeId>,
-    next_sibling: Option<NodeId>,
-    first_child: Option<NodeId>,
-    last_child: Option<NodeId>,
-
-    pub data: Option<T>,
 }
 
 impl<T> Node<T> {
@@ -174,6 +170,20 @@ impl<T> GetPairMut<T> for Vec<T> {
     }
 }
 
+impl<T> ops::Index<NodeId> for VecTree<T> {
+    type Output = T;
+
+    fn index(&self, index: NodeId) -> &Self::Output {
+        self.get(index).unwrap()
+    }
+}
+
+impl<T> ops::IndexMut<NodeId> for VecTree<T> {
+    fn index_mut(&mut self, index: NodeId) -> &mut Self::Output {
+        self.get_mut(index).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::VecTree;
@@ -191,18 +201,18 @@ mod tests {
 
         assert!(tree.nodes.len() == 3, "it should have 3 nodes in the tree");
         assert!(
-            *tree.borrow_data(root_node_id) == 1,
+            *tree.get(root_node_id).unwrap() == 1,
             "it should have 1 as data"
         );
 
-        assert!(
-            tree.take_data(child_node_id_1) == 2,
-            "it should have 1 as data"
-        );
+        assert!(tree[child_node_id_1] == 2, "it should have 1 as data");
+    }
 
-        let child_node_id_2_mut_borrow = tree.borrow_data_mut(child_node_id_2);
-        *child_node_id_2_mut_borrow = 4;
-
-        assert!(*child_node_id_2_mut_borrow == 4, "it should have 1 as data");
+    #[test]
+    fn get_mut() {
+        let mut tree = VecTree::new();
+        let idx = tree.new_node(5);
+        tree[idx] += 1;
+        assert_eq!(tree[idx], 6);
     }
 }
