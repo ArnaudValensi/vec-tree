@@ -120,6 +120,36 @@ impl<T> VecTree<T> {
             node_id: self.nodes[node_id.index].first_child,
         }
     }
+
+    /// Return an iterator of references to this node and the siblings before it.
+    ///
+    /// Call `.next().unwrap()` once on the iterator to skip the node itself.
+    pub fn preceding_siblings(&self, node_id: NodeId) -> PrecedingSiblingsIter<T> {
+        PrecedingSiblingsIter {
+            tree: self,
+            node_id: Some(node_id),
+        }
+    }
+
+    /// Return an iterator of references to this node and the siblings after it.
+    ///
+    /// Call `.next().unwrap()` once on the iterator to skip the node itself.
+    pub fn following_siblings(&self, node_id: NodeId) -> FollowingSiblingsIter<T> {
+        FollowingSiblingsIter {
+            tree: self,
+            node_id: Some(node_id),
+        }
+    }
+
+    /// Return an iterator of references to this node and its ancestors.
+    ///
+    /// Call `.next().unwrap()` once on the iterator to skip the node itself.
+    pub fn ancestors(&self, node_id: NodeId) -> AncestorsIter<T> {
+        AncestorsIter {
+            tree: self,
+            node_id: Some(node_id),
+        }
+    }
 }
 
 impl<T> Node<T> {
@@ -197,23 +227,49 @@ impl<T> ops::IndexMut<NodeId> for VecTree<T> {
     }
 }
 
+macro_rules! impl_node_iterator {
+    ($name:ident, $next:expr) => {
+        impl<'a, T> Iterator for $name<'a, T> {
+            type Item = NodeId;
+
+            fn next(&mut self) -> Option<NodeId> {
+                match self.node_id.take() {
+                    Some(node_id) => {
+                        self.node_id = $next(&self.tree.nodes[node_id.index]);
+                        Some(node_id)
+                    }
+                    None => None,
+                }
+            }
+        }
+    };
+}
+
+/// An iterator of references to the children of a given node.
 pub struct ChildrenIter<'a, T: 'a> {
     tree: &'a VecTree<T>,
     node_id: Option<NodeId>,
 }
+impl_node_iterator!(ChildrenIter, |node: &Node<T>| node.next_sibling);
 
-impl<'a, T> Iterator for ChildrenIter<'a, T> {
-    type Item = NodeId;
-
-    fn next(&mut self) -> Option<NodeId> {
-        match self.node_id.take() {
-            Some(node_id) => {
-                let tree = self.tree;
-                let node = &tree.nodes[node_id.index];
-                self.node_id = node.next_sibling;
-                Some(node_id)
-            }
-            None => None,
-        }
-    }
+/// An iterator of references to the siblings before a given node.
+pub struct PrecedingSiblingsIter<'a, T: 'a> {
+    tree: &'a VecTree<T>,
+    node_id: Option<NodeId>,
 }
+impl_node_iterator!(PrecedingSiblingsIter, |node: &Node<T>| node
+    .previous_sibling);
+
+/// An iterator of references to the siblings after a given node.
+pub struct FollowingSiblingsIter<'a, T: 'a> {
+    tree: &'a VecTree<T>,
+    node_id: Option<NodeId>,
+}
+impl_node_iterator!(FollowingSiblingsIter, |node: &Node<T>| node.next_sibling);
+
+/// An iterator of references to the ancestors a given node.
+pub struct AncestorsIter<'a, T: 'a> {
+    tree: &'a VecTree<T>,
+    node_id: Option<NodeId>,
+}
+impl_node_iterator!(AncestorsIter, |node: &Node<T>| node.parent);
