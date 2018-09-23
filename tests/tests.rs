@@ -28,3 +28,51 @@ fn get_mut() {
     tree[idx] += 1;
     assert_eq!(tree[idx], 6);
 }
+
+#[test]
+fn iterate_over_children() {
+    let mut tree = VecTree::new();
+
+    let root_node = tree.new_node(1);
+    let child_node_1 = tree.new_node(2);
+    let child_node_2 = tree.new_node(3);
+    let child_node_3 = tree.new_node(4);
+    let grandchild = tree.new_node(5);
+
+    tree.append_child(root_node, child_node_1);
+    tree.append_child(root_node, child_node_2);
+    tree.append_child(root_node, child_node_3);
+    tree.append_child(child_node_3, grandchild);
+
+    assert_eq!(
+        tree
+            .children(root_node)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [2, 3, 4]
+    );
+
+    assert_eq!(
+        tree
+            .children(child_node_1)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        []
+    );
+
+    assert_eq!(
+        tree
+            .children(child_node_2)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        []
+    );
+
+    assert_eq!(
+        tree
+            .children(child_node_3)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [5]
+    );
+}

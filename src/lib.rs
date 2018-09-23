@@ -27,6 +27,7 @@ impl<T> VecTree<T> {
         VecTree { nodes: Vec::new() }
     }
 
+    // TODO: Change api for insert(data, parent)
     #[inline]
     pub fn new_node(&mut self, data: T) -> NodeId {
         let index = self.nodes.len();
@@ -111,6 +112,14 @@ impl<T> VecTree<T> {
     pub fn capacity(&self) -> usize {
         self.nodes.len()
     }
+
+    /// Return an iterator of references to this node’s children.
+    pub fn children(&self, node_id: NodeId) -> ChildrenIter<T> {
+        ChildrenIter {
+            tree: self,
+            node_id: self.nodes[node_id.index].first_child,
+        }
+    }
 }
 
 impl<T> Node<T> {
@@ -185,5 +194,26 @@ impl<T> ops::Index<NodeId> for VecTree<T> {
 impl<T> ops::IndexMut<NodeId> for VecTree<T> {
     fn index_mut(&mut self, index: NodeId) -> &mut Self::Output {
         self.get_mut(index).unwrap()
+    }
+}
+
+pub struct ChildrenIter<'a, T: 'a> {
+    tree: &'a VecTree<T>,
+    node_id: Option<NodeId>,
+}
+
+impl<'a, T> Iterator for ChildrenIter<'a, T> {
+    type Item = NodeId;
+
+    fn next(&mut self) -> Option<NodeId> {
+        match self.node_id.take() {
+            Some(node_id) => {
+                let tree = self.tree;
+                let node = &tree.nodes[node_id.index];
+                self.node_id = node.next_sibling;
+                Some(node_id)
+            }
+            None => None,
+        }
     }
 }
