@@ -5,9 +5,9 @@ use vec_tree::VecTree;
 fn create_tree() {
     let mut tree = VecTree::new();
 
-    let root_node_id = tree.new_node(1);
-    let child_node_id_1 = tree.new_node(2);
-    let child_node_id_2 = tree.new_node(3);
+    let root_node_id = tree.insert(1);
+    let child_node_id_1 = tree.insert(2);
+    let child_node_id_2 = tree.insert(3);
 
     tree.append_child(root_node_id, child_node_id_1);
     tree.append_child(root_node_id, child_node_id_2);
@@ -24,7 +24,7 @@ fn create_tree() {
 #[test]
 fn get_mut() {
     let mut tree = VecTree::new();
-    let idx = tree.new_node(5);
+    let idx = tree.insert(5);
     tree[idx] += 1;
     assert_eq!(tree[idx], 6);
 }
@@ -33,11 +33,11 @@ fn get_mut() {
 fn iterate_over_children() {
     let mut tree = VecTree::new();
 
-    let root_node = tree.new_node(1);
-    let child_node_1 = tree.new_node(2);
-    let child_node_2 = tree.new_node(3);
-    let child_node_3 = tree.new_node(4);
-    let grandchild = tree.new_node(5);
+    let root_node = tree.insert(1);
+    let child_node_1 = tree.insert(2);
+    let child_node_2 = tree.insert(3);
+    let child_node_3 = tree.insert(4);
+    let grandchild = tree.insert(5);
 
     tree.append_child(root_node, child_node_1);
     tree.append_child(root_node, child_node_2);
@@ -76,3 +76,10 @@ fn iterate_over_children() {
         [5]
     );
 }
+
+// #[test]
+// fn can_get_live_value() {
+//     let mut arena = VecTree::with_capacity(1);
+//     let i = arena.try_insert(42).unwrap();
+//     assert_eq!(arena[i], 42);
+// }

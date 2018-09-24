@@ -27,9 +27,8 @@ impl<T> VecTree<T> {
         VecTree { nodes: Vec::new() }
     }
 
-    // TODO: Change api for insert(data, parent)
     #[inline]
-    pub fn new_node(&mut self, data: T) -> NodeId {
+    pub fn insert(&mut self, data: T) -> NodeId {
         let index = self.nodes.len();
 
         self.nodes.push(Node {
