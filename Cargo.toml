@@ -5,3 +5,5 @@ authors = ["Arnaud Valensi <arnaud.valensi@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+generational-arena = { path = "/Users/arnaudvalensi/dev/tmp/generational-arena" }
+# generational-arena = "0.1"
