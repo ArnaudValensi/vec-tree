@@ -19,11 +19,6 @@ struct Node<T> {
     data: T,
 }
 
-// #[derive(Debug, Copy, Clone)]
-// pub struct NodeId {
-//     index: Index,
-// }
-
 const DEFAULT_CAPACITY: usize = 4;
 
 impl<T> VecTree<T> {
@@ -42,7 +37,6 @@ impl<T> VecTree<T> {
         self.nodes.reserve(additional_capacity);
     }
 
-    // TODO: Use value or data everywhere
     #[inline]
     pub fn try_insert(&mut self, data: T) -> Result<Index, T> {
         let new_node = Node {
@@ -58,29 +52,6 @@ impl<T> VecTree<T> {
             Ok(index) => Ok(index),
             Err(Node { data, .. }) => Err(data),
         }
-
-        // match self.free_list_head {
-        //     None => Err(data),
-        //     Some(i) => match self.nodes[i] {
-        //         Node::Occupied { .. } => panic!("corrupt free list"),
-        //         Node::Free { next_free } => {
-        //             self.free_list_head = next_free;
-        //             self.nodes[i] = Node::Occupied {
-        //                 parent: None,
-        //                 first_child: None,
-        //                 last_child: None,
-        //                 previous_sibling: None,
-        //                 next_sibling: None,
-        //                 generation: self.generation,
-        //                 data,
-        //             };
-        //             Ok(NodeId {
-        //                 index: i,
-        //                 generation: self.generation,
-        //             })
-        //         }
-        //     },
-        // }
     }
 
     #[inline]
@@ -97,6 +68,7 @@ impl<T> VecTree<T> {
         self.nodes.insert(new_node)
     }
 
+    #[inline]
     pub fn append_child(
         &mut self,
         node_id: Index,
@@ -139,6 +111,7 @@ impl<T> VecTree<T> {
     }
 
     // TODO: return error instead of panic
+    #[inline]
     pub fn detach(&mut self, node_id: Index) {
         let (parent, previous_sibling, next_sibling) = {
             let node = &mut self.nodes[node_id];
