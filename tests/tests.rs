@@ -71,6 +71,31 @@ fn index_deleted_item() {
 }
 
 #[test]
+fn check_the_validity_of_the_tree_after_remove() {
+    let mut tree = VecTree::new();
+    let root = tree.insert(0);
+    let child1 = tree.insert(1);
+    let child2 = tree.insert(2);
+    let child3 = tree.insert(3);
+
+    tree.append_child(root, child1).expect("valid");
+    tree.append_child(root, child2).expect("valid");
+    tree.append_child(root, child3).expect("valid");
+
+    tree.remove(child3);
+
+    let child4 = tree.insert(4);
+    tree.append_child(root, child4).expect("valid");
+
+    assert_eq!(
+        tree.children(root)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [1, 2, 4]
+    );
+}
+
+#[test]
 fn out_of_bounds_get_with_index_from_other_tree() {
     let mut tree1 = VecTree::with_capacity(1);
     let tree2 = VecTree::<usize>::with_capacity(1);
