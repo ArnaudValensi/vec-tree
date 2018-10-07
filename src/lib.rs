@@ -68,6 +68,14 @@ impl<T> VecTree<T> {
         self.nodes.insert(new_node)
     }
 
+
+    pub fn remove(&mut self, node_id: Index) -> Option<T> {
+        match self.nodes.remove(node_id) {
+            Some(node) => Some(node.data),
+            _ => None,
+        }
+    }
+
     #[inline]
     pub fn append_child(
         &mut self,

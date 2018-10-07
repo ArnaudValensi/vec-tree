@@ -2,6 +2,21 @@ extern crate vec_tree;
 use vec_tree::VecTree;
 
 #[test]
+fn can_get_live_value() {
+    let mut arena = VecTree::with_capacity(1);
+    let i = arena.try_insert(42).unwrap();
+    assert_eq!(arena[i], 42);
+}
+
+#[test]
+fn cannot_get_free_value() {
+    let mut arena = VecTree::with_capacity(1);
+    let i = arena.try_insert(42).unwrap();
+    assert_eq!(arena.remove(i).unwrap(), 42);
+    // assert!(!arena.contains(i));
+}
+
+#[test]
 fn create_tree() {
     let mut tree = VecTree::<i32>::new();
 
@@ -72,10 +87,3 @@ fn iterate_over_children() {
         [5]
     );
 }
-
-// #[test]
-// fn can_get_live_value() {
-//     let mut arena = VecTree::with_capacity(1);
-//     let i = arena.try_insert(42).unwrap();
-//     assert_eq!(arena[i], 42);
-// }
