@@ -83,7 +83,6 @@ fn check_the_validity_of_the_tree_after_remove() {
     tree.append_child(root, child3).expect("valid");
 
     tree.remove(child3);
-
     let child4 = tree.insert(4);
     tree.append_child(root, child4).expect("valid");
 
@@ -93,7 +92,32 @@ fn check_the_validity_of_the_tree_after_remove() {
             .collect::<Vec<_>>(),
         [1, 2, 4]
     );
+
+    tree.remove(child2);
+    let child5 = tree.insert(5);
+    tree.append_child(root, child5).expect("valid");
+
+    assert_eq!(
+        tree.children(root)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [1, 4, 5]
+    );
+
+    tree.remove(child1);
+    let child6 = tree.insert(6);
+    tree.append_child(root, child6).expect("valid");
+
+    assert_eq!(
+        tree.children(root)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [4, 5, 6]
+    );
 }
+
+#[test]
+fn check_children_removed_on_remove() {}
 
 #[test]
 fn out_of_bounds_get_with_index_from_other_tree() {
