@@ -13,7 +13,7 @@ fn cannot_get_free_value() {
     let mut arena = VecTree::with_capacity(1);
     let i = arena.try_insert(42).unwrap();
     assert_eq!(arena.remove(i).unwrap(), 42);
-    // assert!(!arena.contains(i));
+    assert!(!arena.contains(i));
 }
 
 #[test]
