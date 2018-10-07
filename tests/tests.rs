@@ -24,8 +24,10 @@ fn create_tree() {
     let child_node_id_1 = tree.insert(2);
     let child_node_id_2 = tree.insert(3);
 
-    tree.append_child(root_node_id, child_node_id_1).expect("valid");
-    tree.append_child(root_node_id, child_node_id_2).expect("valid");
+    tree.append_child(root_node_id, child_node_id_1)
+        .expect("valid");
+    tree.append_child(root_node_id, child_node_id_2)
+        .expect("valid");
 
     assert_eq!(tree.capacity(), 4);
     assert_eq!(*tree.get(root_node_id).unwrap(), 1);
@@ -56,32 +58,28 @@ fn iterate_over_children() {
     tree.append_child(child_node_3, grandchild).expect("valid");
 
     assert_eq!(
-        tree
-            .children(root_node)
+        tree.children(root_node)
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
         [2, 3, 4]
     );
 
     assert_eq!(
-        tree
-            .children(child_node_1)
+        tree.children(child_node_1)
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
         []
     );
 
     assert_eq!(
-        tree
-            .children(child_node_2)
+        tree.children(child_node_2)
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
         []
     );
 
     assert_eq!(
-        tree
-            .children(child_node_3)
+        tree.children(child_node_3)
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
         [5]
