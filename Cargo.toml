@@ -1,8 +1,11 @@
 [package]
-name = "vec-tree"
-version = "0.1.0"
 authors = ["Arnaud Valensi <arnaud.valensi@gmail.com>"]
+categories = ["tree", "data-structures", "memory-management", "rust-patterns"]
 edition = "2018"
+license = "MPL-2.0"
+name = "vec-tree"
+readme = "./README.md"
+version = "0.1.0"
 
 [dependencies]
 generational-arena = { path = "/Users/arnaudvalensi/dev/perso/rust/generational-arena" }
