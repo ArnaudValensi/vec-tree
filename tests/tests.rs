@@ -129,7 +129,7 @@ fn check_remove_with_one_child() {
         tree.children(root)
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
-        [0]
+        []
     );
 
     let child2 = tree.try_insert(2).unwrap();
@@ -139,7 +139,7 @@ fn check_remove_with_one_child() {
         tree.children(root)
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
-        [0, 2]
+        [2]
     );
 
     tree.remove(child2);
@@ -148,7 +148,7 @@ fn check_remove_with_one_child() {
         tree.children(root)
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
-        [0]
+        []
     );
 }
 

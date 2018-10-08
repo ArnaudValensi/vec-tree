@@ -211,7 +211,39 @@ impl<T> VecTree<T> {
         let previous_sibling_opt = node.previous_sibling;
         let next_sibling_opt = node.next_sibling;
 
-        None
+        if let Some(previous_sibling_idx) = previous_sibling_opt {
+            if let Some(next_sibling_idx) = next_sibling_opt {
+                // If has previous and next.
+                let (previous_sibling, next_sibling) =
+                    self.nodes.get2_mut(previous_sibling_idx, next_sibling_idx);
+
+                previous_sibling.unwrap().next_sibling = Some(next_sibling_idx);
+                next_sibling.unwrap().previous_sibling = Some(previous_sibling_idx);
+            } else if let Some(parent_idx) = node.parent {
+                // If has previous but no next.
+                let previous_sibling = &mut self.nodes[previous_sibling_idx];
+                previous_sibling.next_sibling = None;
+
+                let parent = &mut self.nodes[parent_idx];
+                parent.last_child = Some(previous_sibling_idx);
+            }
+        } else if let Some(next_sibling_idx) = next_sibling_opt {
+            // If has next but no previous.
+            let next_sibling = &mut self.nodes[next_sibling_idx];
+            next_sibling.previous_sibling = None;
+
+            if let Some(parent_idx) = node.parent {
+                let parent = &mut self.nodes[parent_idx];
+                parent.first_child = Some(next_sibling_idx);
+            }
+        } else if let Some(parent_idx) = node.parent {
+            // If it has no previous and no next.
+            let parent = &mut self.nodes[parent_idx];
+            parent.first_child = None;
+            parent.last_child = None;
+        }
+
+        Some(node.data)
     }
 
     pub fn contains(&self, i: Index) -> bool {
