@@ -72,18 +72,18 @@ fn index_deleted_item() {
 
 #[test]
 fn check_the_validity_of_the_tree_after_remove() {
-    let mut tree = VecTree::new();
-    let root = tree.insert(0);
-    let child1 = tree.insert(1);
-    let child2 = tree.insert(2);
-    let child3 = tree.insert(3);
+    let mut tree: VecTree<usize> = VecTree::with_capacity(4);
+    let root = tree.try_insert(0).unwrap();
+    let child1 = tree.try_insert(1).unwrap();
+    let child2 = tree.try_insert(2).unwrap();
+    let child3 = tree.try_insert(3).unwrap();
 
     tree.append_child(root, child1).expect("valid");
     tree.append_child(root, child2).expect("valid");
     tree.append_child(root, child3).expect("valid");
 
     tree.remove(child3);
-    let child4 = tree.insert(4);
+    let child4 = tree.try_insert(4).unwrap();
     tree.append_child(root, child4).expect("valid");
 
     assert_eq!(
@@ -94,7 +94,7 @@ fn check_the_validity_of_the_tree_after_remove() {
     );
 
     tree.remove(child2);
-    let child5 = tree.insert(5);
+    let child5 = tree.try_insert(5).unwrap();
     tree.append_child(root, child5).expect("valid");
 
     assert_eq!(
@@ -105,7 +105,7 @@ fn check_the_validity_of_the_tree_after_remove() {
     );
 
     tree.remove(child1);
-    let child6 = tree.insert(6);
+    let child6 = tree.try_insert(6).unwrap();
     tree.append_child(root, child6).expect("valid");
 
     assert_eq!(
@@ -113,6 +113,42 @@ fn check_the_validity_of_the_tree_after_remove() {
             .map(|node_id| tree[node_id])
             .collect::<Vec<_>>(),
         [4, 5, 6]
+    );
+}
+
+#[test]
+fn check_remove_with_one_child() {
+    let mut tree: VecTree<usize> = VecTree::with_capacity(2);
+    let root = tree.try_insert(0).unwrap();
+
+    let child1 = tree.try_insert(1).unwrap();
+    tree.append_child(root, child1).expect("valid");
+    tree.remove(child1);
+
+    assert_eq!(
+        tree.children(root)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [0]
+    );
+
+    let child2 = tree.try_insert(2).unwrap();
+    tree.append_child(root, child2).expect("valid");
+
+    assert_eq!(
+        tree.children(root)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [0, 2]
+    );
+
+    tree.remove(child2);
+
+    assert_eq!(
+        tree.children(root)
+            .map(|node_id| tree[node_id])
+            .collect::<Vec<_>>(),
+        [0]
     );
 }
 

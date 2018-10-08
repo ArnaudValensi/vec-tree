@@ -201,11 +201,17 @@ impl<T> VecTree<T> {
     }
 
     // TODO: Fix previous/next sibling
+    // TODO: Remove all children
     pub fn remove(&mut self, node_id: Index) -> Option<T> {
-        match self.nodes.remove(node_id) {
-            Some(node) => Some(node.data),
-            _ => None,
-        }
+        let node = match self.nodes.remove(node_id) {
+            Some(node) => node,
+            _ => return None,
+        };
+
+        let previous_sibling_opt = node.previous_sibling;
+        let next_sibling_opt = node.next_sibling;
+
+        None
     }
 
     pub fn contains(&self, i: Index) -> bool {
