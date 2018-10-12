@@ -62,7 +62,7 @@ then the operation fails.
 
 ### Features
 
-* The code is safe
+* Zero `unsafe`
 * There is different iterators to traverse the tree
 * Well tested
 
