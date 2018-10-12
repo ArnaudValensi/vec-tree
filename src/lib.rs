@@ -130,6 +130,8 @@ for value in tree.children(child_node_1) {
 ```
  */
 
+#![forbid(unsafe_code)]
+
 extern crate generational_arena;
 use generational_arena::{Arena, Index};
 
