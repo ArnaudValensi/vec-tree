@@ -206,7 +206,6 @@ impl<T> VecTree<T> {
         self.nodes.insert(new_node)
     }
 
-    // TODO: Fix previous/next sibling
     // TODO: Remove all children
     pub fn remove(&mut self, node_id: Index) -> Option<T> {
         let node = match self.nodes.remove(node_id) {
