@@ -421,3 +421,51 @@ fn iterate_over_descendants_with_depth() {
 
     assert_eq!(descendants, expected_result);
 }
+
+#[test]
+// It would panic when adding node_5 if the nodes where not recursively removed.
+fn check_descendants_are_removed() {
+    let mut tree = VecTree::with_capacity(5);
+
+    // 0-1-3-4
+    //   `-2
+    let root_node = tree.try_insert(0).unwrap();
+    let node_1 = tree.try_insert(1).unwrap();
+    let node_2 = tree.try_insert(2).unwrap();
+    let node_3 = tree.try_insert(3).unwrap();
+    let node_4 = tree.try_insert(4).unwrap();
+
+    tree.append_child(root_node, node_1).expect("valid");
+    tree.append_child(node_1, node_2).expect("valid");
+    tree.append_child(node_1, node_3).expect("valid");
+    tree.append_child(node_3, node_4).expect("valid");
+
+    let descendants = tree
+        .descendants(root_node)
+        .map(|node| tree[node])
+        .collect::<Vec<i32>>();
+
+    assert_eq!(descendants, [0, 1, 2, 3, 4]);
+
+    // 0
+    tree.remove(node_1);
+
+    // 0-5-7-8
+    //   `-6
+    let node_5 = tree.try_insert(5).unwrap();
+    let node_6 = tree.try_insert(6).unwrap();
+    let node_7 = tree.try_insert(7).unwrap();
+    let node_8 = tree.try_insert(8).unwrap();
+
+    tree.append_child(root_node, node_5).expect("valid");
+    tree.append_child(node_5, node_6).expect("valid");
+    tree.append_child(node_5, node_7).expect("valid");
+    tree.append_child(node_7, node_8).expect("valid");
+
+    let descendants = tree
+        .descendants(root_node)
+        .map(|node| tree[node])
+        .collect::<Vec<i32>>();
+
+    assert_eq!(descendants, [0, 5, 6, 7, 8]);
+}

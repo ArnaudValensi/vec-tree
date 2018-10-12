@@ -206,12 +206,13 @@ impl<T> VecTree<T> {
         self.nodes.insert(new_node)
     }
 
-    // TODO: Remove all children
     pub fn remove(&mut self, node_id: Index) -> Option<T> {
-        let node = match self.nodes.remove(node_id) {
-            Some(node) => node,
-            _ => return None,
-        };
+        if !self.contains(node_id) {
+            return None;
+        }
+
+        let descendants = self.descendants(node_id).skip(1).collect::<Vec<Index>>();
+        let node = self.nodes.remove(node_id).unwrap();
 
         let previous_sibling_opt = node.previous_sibling;
         let next_sibling_opt = node.next_sibling;
@@ -246,6 +247,11 @@ impl<T> VecTree<T> {
             let parent = &mut self.nodes[parent_idx];
             parent.first_child = None;
             parent.last_child = None;
+        }
+
+        // Remove descendants from arena
+        for node_id in descendants {
+            self.nodes.remove(node_id);
         }
 
         Some(node.data)
@@ -499,6 +505,8 @@ pub enum NodeEdge<T> {
     End(T),
 }
 
+// TODO: TraverseIter
+
 /// An iterator of references to a given node and its descendants, in depth-first search pre-order
 /// NLR traversal.
 /// https://en.wikipedia.org/wiki/Tree_traversal#Pre-order_(NLR)
@@ -547,6 +555,8 @@ impl<'a, T> Iterator for Traverse<'a, T> {
     }
 }
 
+// TODO: DescendantsIter
+
 /// An iterator of references to a given node and its descendants, in tree order.
 pub struct Descendants<'a, T: 'a>(pub Traverse<'a, T>);
 
@@ -575,6 +585,8 @@ pub enum NodeEdgeWithDepth<T> {
     /// node’s descendants.
     End(T, u32),
 }
+
+// TODO: TraverseWithDepthIter
 
 /// An iterator of references to a given node and its descendants, with depth, in depth-first
 /// search pre-order NLR traversal.
@@ -631,6 +643,9 @@ impl<'a, T> Iterator for TraverseWithDepth<'a, T> {
         }
     }
 }
+
+// TODO: DescendantsWithDepthIter
+// TODO: node_id
 
 /// An iterator of references to a given node and its descendants, with depth, in tree order.
 pub struct DescendantsWithDepth<'a, T: 'a>(pub TraverseWithDepth<'a, T>);
