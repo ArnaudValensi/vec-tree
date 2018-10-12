@@ -153,6 +153,12 @@ struct Node<T> {
 
 const DEFAULT_CAPACITY: usize = 4;
 
+impl<T> Default for VecTree<T> {
+    fn default() -> Self {
+        VecTree::with_capacity(DEFAULT_CAPACITY)
+    }
+}
+
 impl<T> VecTree<T> {
     pub fn new() -> VecTree<T> {
         VecTree::with_capacity(DEFAULT_CAPACITY)
