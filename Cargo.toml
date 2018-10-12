@@ -8,5 +8,4 @@ readme = "./README.md"
 version = "0.1.0"
 
 [dependencies]
-generational-arena = { path = "/Users/arnaudvalensi/dev/perso/rust/generational-arena" }
-# generational-arena = "0.1"
+generational-arena = { git = "https://github.com/ArnaudValensi/generational-arena.git" }
