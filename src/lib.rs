@@ -507,8 +507,6 @@ pub enum NodeEdge<T> {
     End(T),
 }
 
-// TODO: TraverseIter
-
 /// An iterator of references to a given node and its descendants, in depth-first search pre-order
 /// NLR traversal.
 /// https://en.wikipedia.org/wiki/Tree_traversal#Pre-order_(NLR)
@@ -557,8 +555,6 @@ impl<'a, T> Iterator for TraverseIter<'a, T> {
     }
 }
 
-// TODO: DescendantsIter
-
 /// An iterator of references to a given node and its descendants, in tree order.
 pub struct DescendantsIter<'a, T: 'a>(pub TraverseIter<'a, T>);
 
@@ -587,8 +583,6 @@ pub enum NodeEdgeWithDepth<T> {
     /// node’s descendants.
     End(T, u32),
 }
-
-// TODO: TraverseWithDepthIter
 
 /// An iterator of references to a given node and its descendants, with depth, in depth-first
 /// search pre-order NLR traversal.
