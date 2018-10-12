@@ -61,7 +61,7 @@ then the operation fails.
 
 ## Features
 
-* The code is safe
+* Zero `unsafe`
 * There is different iterators to traverse the tree
 * Well tested
 
@@ -378,6 +378,23 @@ impl<T> VecTree<T> {
             node_id: Some(node_id),
         }
     }
+
+    /// Return an iterator of references to this node and its descendants, in tree order.
+    fn traverse(&self, node_id: Index) -> Traverse<T> {
+        Traverse {
+            tree: self,
+            root: node_id,
+            next: Some(NodeEdge::Start(node_id)),
+        }
+    }
+
+    /// Return an iterator of references to this node and its descendants, in tree order.
+    ///
+    /// Parent nodes appear before the descendants.
+    /// Call `.next().unwrap()` once on the iterator to skip the node itself.
+    pub fn descendants(&self, node_id: Index) -> Descendants<T> {
+        Descendants(self.traverse(node_id))
+    }
 }
 
 impl<T> fmt::Display for Node<T> {
@@ -450,3 +467,80 @@ pub struct AncestorsIter<'a, T: 'a> {
     node_id: Option<Index>,
 }
 impl_node_iterator!(AncestorsIter, |node: &Node<T>| node.parent);
+
+#[derive(Debug, Clone)]
+/// Indicator if the node is at a start or endpoint of the tree
+pub enum NodeEdge<T> {
+    /// Indicates that start of a node that has children. Yielded by `Traverse::next` before the
+    /// node’s descendants.
+    Start(T),
+
+    /// Indicates that end of a node that has children. Yielded by `Traverse::next` after the
+    /// node’s descendants.
+    End(T),
+}
+
+/// An iterator of references to a given node and its descendants, in depth-first search pre-order
+/// NLR traversal.
+/// https://en.wikipedia.org/wiki/Tree_traversal#Pre-order_(NLR)
+pub struct Traverse<'a, T: 'a> {
+    tree: &'a VecTree<T>,
+    root: Index,
+    next: Option<NodeEdge<Index>>,
+}
+
+impl<'a, T> Iterator for Traverse<'a, T> {
+    type Item = NodeEdge<Index>;
+
+    fn next(&mut self) -> Option<NodeEdge<Index>> {
+        match self.next.take() {
+            Some(item) => {
+                self.next = match item {
+                    NodeEdge::Start(node) => match self.tree.nodes[node].first_child {
+                        Some(first_child) => Some(NodeEdge::Start(first_child)),
+                        None => Some(NodeEdge::End(node)),
+                    },
+                    NodeEdge::End(node) => {
+                        if node == self.root {
+                            None
+                        } else {
+                            match self.tree.nodes[node].next_sibling {
+                                Some(next_sibling) => Some(NodeEdge::Start(next_sibling)),
+                                None => {
+                                    match self.tree.nodes[node].parent {
+                                        Some(parent) => Some(NodeEdge::End(parent)),
+
+                                        // `node.parent()` here can only be `None`
+                                        // if the tree has been modified during iteration,
+                                        // but silently stoping iteration
+                                        // seems a more sensible behavior than panicking.
+                                        None => None,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+                Some(item)
+            }
+            None => None,
+        }
+    }
+}
+
+/// An iterator of references to a given node and its descendants, in tree order.
+pub struct Descendants<'a, T: 'a>(pub Traverse<'a, T>);
+
+impl<'a, T> Iterator for Descendants<'a, T> {
+    type Item = Index;
+
+    fn next(&mut self) -> Option<Index> {
+        loop {
+            match self.0.next() {
+                Some(NodeEdge::Start(node)) => return Some(node),
+                Some(NodeEdge::End(_)) => {}
+                None => return None,
+            }
+        }
+    }
+}

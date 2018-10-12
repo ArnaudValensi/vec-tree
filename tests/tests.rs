@@ -342,3 +342,38 @@ fn iterate_over_ancestors() {
         [5, 3, 1]
     );
 }
+
+#[test]
+fn iterate_over_descendants() {
+    let mut tree = VecTree::new();
+
+    // 0-1-4-6
+    // | `-5
+    // `-2
+    // `-3
+    let root_node = tree.insert(0);
+    let node_1 = tree.insert(1);
+    let node_2 = tree.insert(2);
+    let node_3 = tree.insert(3);
+    let node_4 = tree.insert(4);
+    let node_5 = tree.insert(5);
+    let node_6 = tree.insert(6);
+    let node_7 = tree.insert(7);
+
+    tree.append_child(root_node, node_1).expect("valid");
+    tree.append_child(root_node, node_2).expect("valid");
+    tree.append_child(root_node, node_3).expect("valid");
+    tree.append_child(node_1, node_4).expect("valid");
+    tree.append_child(node_1, node_5).expect("valid");
+    tree.append_child(node_4, node_6).expect("valid");
+    tree.append_child(node_2, node_7).expect("valid");
+
+    let descendants = tree
+        .descendants(root_node)
+        .map(|node| tree[node])
+        .collect::<Vec<i32>>();
+
+    let expected_result = [0, 1, 4, 6, 5, 2, 7, 3];
+
+    assert_eq!(descendants, expected_result);
+}
