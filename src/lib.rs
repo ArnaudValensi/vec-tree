@@ -249,7 +249,7 @@ impl<T> VecTree<T> {
             parent.last_child = None;
         }
 
-        // Remove descendants from arena
+        // Remove descendants from arena.
         for node_id in descendants {
             self.nodes.remove(node_id);
         }
@@ -386,8 +386,8 @@ impl<T> VecTree<T> {
     }
 
     /// Return an iterator of references to this node and its descendants, in tree order.
-    fn traverse(&self, node_id: Index) -> Traverse<T> {
-        Traverse {
+    fn traverse(&self, node_id: Index) -> TraverseIter<T> {
+        TraverseIter {
             tree: self,
             root: node_id,
             next: Some(NodeEdge::Start(node_id)),
@@ -396,8 +396,8 @@ impl<T> VecTree<T> {
 
     /// Return an iterator of references to this node and its descendants, with deoth in the tree,
     /// in tree order.
-    fn traverse_with_depth(&self, node_id: Index) -> TraverseWithDepth<T> {
-        TraverseWithDepth {
+    fn traverse_with_depth(&self, node_id: Index) -> TraverseWithDepthIter<T> {
+        TraverseWithDepthIter {
             tree: self,
             root: node_id,
             next: Some(NodeEdgeWithDepth::Start(node_id, 0)),
@@ -408,8 +408,8 @@ impl<T> VecTree<T> {
     ///
     /// Parent nodes appear before the descendants.
     /// Call `.next().unwrap()` once on the iterator to skip the node itself.
-    pub fn descendants(&self, node_id: Index) -> Descendants<T> {
-        Descendants(self.traverse(node_id))
+    pub fn descendants(&self, node_id: Index) -> DescendantsIter<T> {
+        DescendantsIter(self.traverse(node_id))
     }
 
     /// Return an iterator of references to this node and its descendants, with deoth in the tree,
@@ -417,8 +417,8 @@ impl<T> VecTree<T> {
     ///
     /// Parent nodes appear before the descendants.
     /// Call `.next().unwrap()` once on the iterator to skip the node itself.
-    pub fn descendants_with_depth(&self, node_id: Index) -> DescendantsWithDepth<T> {
-        DescendantsWithDepth(self.traverse_with_depth(node_id))
+    pub fn descendants_with_depth(&self, node_id: Index) -> DescendantsWithDepthIter<T> {
+        DescendantsWithDepthIter(self.traverse_with_depth(node_id))
     }
 }
 
@@ -496,11 +496,11 @@ impl_node_iterator!(AncestorsIter, |node: &Node<T>| node.parent);
 #[derive(Debug, Clone)]
 /// Indicator if the node is at a start or endpoint of the tree
 pub enum NodeEdge<T> {
-    /// Indicates that start of a node that has children. Yielded by `Traverse::next` before the
+    /// Indicates that start of a node that has children. Yielded by `TraverseIter::next` before the
     /// node’s descendants.
     Start(T),
 
-    /// Indicates that end of a node that has children. Yielded by `Traverse::next` after the
+    /// Indicates that end of a node that has children. Yielded by `TraverseIter::next` after the
     /// node’s descendants.
     End(T),
 }
@@ -510,37 +510,37 @@ pub enum NodeEdge<T> {
 /// An iterator of references to a given node and its descendants, in depth-first search pre-order
 /// NLR traversal.
 /// https://en.wikipedia.org/wiki/Tree_traversal#Pre-order_(NLR)
-pub struct Traverse<'a, T: 'a> {
+pub struct TraverseIter<'a, T: 'a> {
     tree: &'a VecTree<T>,
     root: Index,
     next: Option<NodeEdge<Index>>,
 }
 
-impl<'a, T> Iterator for Traverse<'a, T> {
+impl<'a, T> Iterator for TraverseIter<'a, T> {
     type Item = NodeEdge<Index>;
 
     fn next(&mut self) -> Option<NodeEdge<Index>> {
         match self.next.take() {
             Some(item) => {
                 self.next = match item {
-                    NodeEdge::Start(node) => match self.tree.nodes[node].first_child {
+                    NodeEdge::Start(node_id) => match self.tree.nodes[node_id].first_child {
                         Some(first_child) => Some(NodeEdge::Start(first_child)),
-                        None => Some(NodeEdge::End(node)),
+                        None => Some(NodeEdge::End(node_id)),
                     },
-                    NodeEdge::End(node) => {
-                        if node == self.root {
+                    NodeEdge::End(node_id) => {
+                        if node_id == self.root {
                             None
                         } else {
-                            match self.tree.nodes[node].next_sibling {
+                            match self.tree.nodes[node_id].next_sibling {
                                 Some(next_sibling) => Some(NodeEdge::Start(next_sibling)),
                                 None => {
-                                    match self.tree.nodes[node].parent {
+                                    match self.tree.nodes[node_id].parent {
                                         Some(parent) => Some(NodeEdge::End(parent)),
 
-                                        // `node.parent()` here can only be `None`
-                                        // if the tree has been modified during iteration,
-                                        // but silently stoping iteration
-                                        // seems a more sensible behavior than panicking.
+                                        // `self.tree.nodes[node_id].parent` here can only be `None`
+                                        // if the tree has been modified during iteration, but
+                                        // silently stoping iteration seems a more sensible behavior
+                                        // than panicking.
                                         None => None,
                                     }
                                 }
@@ -558,15 +558,15 @@ impl<'a, T> Iterator for Traverse<'a, T> {
 // TODO: DescendantsIter
 
 /// An iterator of references to a given node and its descendants, in tree order.
-pub struct Descendants<'a, T: 'a>(pub Traverse<'a, T>);
+pub struct DescendantsIter<'a, T: 'a>(pub TraverseIter<'a, T>);
 
-impl<'a, T> Iterator for Descendants<'a, T> {
+impl<'a, T> Iterator for DescendantsIter<'a, T> {
     type Item = Index;
 
     fn next(&mut self) -> Option<Index> {
         loop {
             match self.0.next() {
-                Some(NodeEdge::Start(node)) => return Some(node),
+                Some(NodeEdge::Start(node_id)) => return Some(node_id),
                 Some(NodeEdge::End(_)) => {}
                 None => return None,
             }
@@ -577,11 +577,11 @@ impl<'a, T> Iterator for Descendants<'a, T> {
 #[derive(Debug, Clone)]
 /// Indicator if the node is at a start or endpoint of the tree
 pub enum NodeEdgeWithDepth<T> {
-    /// Indicates that start of a node that has children. Yielded by `Traverse::next` before the
+    /// Indicates that start of a node that has children. Yielded by `TraverseIter::next` before the
     /// node’s descendants.
     Start(T, u32),
 
-    /// Indicates that end of a node that has children. Yielded by `Traverse::next` after the
+    /// Indicates that end of a node that has children. Yielded by `TraverseIter::next` after the
     /// node’s descendants.
     End(T, u32),
 }
@@ -591,45 +591,45 @@ pub enum NodeEdgeWithDepth<T> {
 /// An iterator of references to a given node and its descendants, with depth, in depth-first
 /// search pre-order NLR traversal.
 /// https://en.wikipedia.org/wiki/Tree_traversal#Pre-order_(NLR)
-pub struct TraverseWithDepth<'a, T: 'a> {
+pub struct TraverseWithDepthIter<'a, T: 'a> {
     tree: &'a VecTree<T>,
     root: Index,
     next: Option<NodeEdgeWithDepth<Index>>,
 }
 
-impl<'a, T> Iterator for TraverseWithDepth<'a, T> {
+impl<'a, T> Iterator for TraverseWithDepthIter<'a, T> {
     type Item = NodeEdgeWithDepth<Index>;
 
     fn next(&mut self) -> Option<NodeEdgeWithDepth<Index>> {
         match self.next.take() {
             Some(item) => {
                 self.next = match item {
-                    NodeEdgeWithDepth::Start(node, depth) => {
-                        match self.tree.nodes[node].first_child {
+                    NodeEdgeWithDepth::Start(node_id, depth) => {
+                        match self.tree.nodes[node_id].first_child {
                             Some(first_child) => {
                                 Some(NodeEdgeWithDepth::Start(first_child, depth + 1))
                             }
-                            None => Some(NodeEdgeWithDepth::End(node, depth)),
+                            None => Some(NodeEdgeWithDepth::End(node_id, depth)),
                         }
                     }
-                    NodeEdgeWithDepth::End(node, depth) => {
-                        if node == self.root {
+                    NodeEdgeWithDepth::End(node_id, depth) => {
+                        if node_id == self.root {
                             None
                         } else {
-                            match self.tree.nodes[node].next_sibling {
+                            match self.tree.nodes[node_id].next_sibling {
                                 Some(next_sibling) => {
                                     Some(NodeEdgeWithDepth::Start(next_sibling, depth))
                                 }
                                 None => {
-                                    match self.tree.nodes[node].parent {
+                                    match self.tree.nodes[node_id].parent {
                                         Some(parent) => {
                                             Some(NodeEdgeWithDepth::End(parent, depth - 1))
                                         }
 
-                                        // `node.parent()` here can only be `None`
-                                        // if the tree has been modified during iteration,
-                                        // but silently stoping iteration
-                                        // seems a more sensible behavior than panicking.
+                                        // `self.tree.nodes[node_id].parent` here can only be `None`
+                                        // if the tree has been modified during iteration, but
+                                        // silently stoping iteration seems a more sensible behavior
+                                        // than panicking.
                                         None => None,
                                     }
                                 }
@@ -644,19 +644,16 @@ impl<'a, T> Iterator for TraverseWithDepth<'a, T> {
     }
 }
 
-// TODO: DescendantsWithDepthIter
-// TODO: node_id
-
 /// An iterator of references to a given node and its descendants, with depth, in tree order.
-pub struct DescendantsWithDepth<'a, T: 'a>(pub TraverseWithDepth<'a, T>);
+pub struct DescendantsWithDepthIter<'a, T: 'a>(pub TraverseWithDepthIter<'a, T>);
 
-impl<'a, T> Iterator for DescendantsWithDepth<'a, T> {
+impl<'a, T> Iterator for DescendantsWithDepthIter<'a, T> {
     type Item = (Index, u32);
 
     fn next(&mut self) -> Option<(Index, u32)> {
         loop {
             match self.0.next() {
-                Some(NodeEdgeWithDepth::Start(node, depth)) => return Some((node, depth)),
+                Some(NodeEdgeWithDepth::Start(node_id, depth)) => return Some((node_id, depth)),
                 Some(NodeEdgeWithDepth::End(_, _)) => {}
                 None => return None,
             }
