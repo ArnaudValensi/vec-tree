@@ -114,10 +114,21 @@ let child_node_4 = tree.insert(13, root_node);
 assert!(!tree.contains(child_node_3));
 assert!(tree.contains(child_node_4));
 
+// We can also move a node (and its descendants).
+tree.append_child(child_node_1, child_node_4);
+
 // Iterate over the children of a node.
 for value in tree.children(child_node_1) {
     println!("value: {:?}", value);
 }
+
+// Or all the descendants in depth first search order.
+let descendants = tree
+    .descendants(root_node)
+    .map(|node| tree[node])
+    .collect::<Vec<i32>>();
+
+assert_eq!(descendants, [1, 10, 13, 11]);
 ```
  */
 
