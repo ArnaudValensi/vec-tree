@@ -464,3 +464,27 @@ fn check_descendants_are_removed() {
 
     assert_eq!(descendants, [0, 5, 6, 7, 8]);
 }
+
+#[test]
+fn move_a_node() {
+    let mut tree = VecTree::with_capacity(3);
+    let root_node = tree.try_insert_root(0).unwrap();
+    let node_1 = tree.try_insert(1, root_node).unwrap();
+    let _node_2 = tree.try_insert(2, root_node).unwrap();
+
+    let descendants = tree
+        .descendants(root_node)
+        .map(|node| tree[node])
+        .collect::<Vec<i32>>();
+
+    assert_eq!(descendants, [0, 1, 2]);
+
+    tree.append_child(root_node, node_1);
+
+    let descendants = tree
+        .descendants(root_node)
+        .map(|node| tree[node])
+        .collect::<Vec<i32>>();
+
+    assert_eq!(descendants, [0, 2, 1]);
+}

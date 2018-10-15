@@ -312,7 +312,7 @@ impl<T> VecTree<T> {
     }
 
     #[inline]
-    fn append_child(&mut self, node_id: Index, new_child_id: Index) {
+    pub fn append_child(&mut self, node_id: Index, new_child_id: Index) {
         self.detach(new_child_id);
 
         let last_child_opt;
