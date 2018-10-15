@@ -84,17 +84,11 @@ use vec_tree::VecTree;
 let mut tree = VecTree::new();
 
 // Insert some elements into the tree.
-let root_node = tree.insert(1);
-let child_node_1 = tree.insert(10);
-let child_node_2 = tree.insert(11);
-let child_node_3 = tree.insert(12);
-let grandchild = tree.insert(100);
-
-// Set the relation between them.
-tree.append_child(root_node, child_node_1).expect("valid");
-tree.append_child(root_node, child_node_2).expect("valid");
-tree.append_child(root_node, child_node_3).expect("valid");
-tree.append_child(child_node_3, grandchild).expect("valid");
+let root_node = tree.insert_root(1);
+let child_node_1 = tree.insert(10, root_node);
+let child_node_2 = tree.insert(11, root_node);
+let child_node_3 = tree.insert(12, root_node);
+let grandchild = tree.insert(100, child_node_3);
 
 // Inserted elements can be accessed infallibly via indexing (and missing
 // entries will panic).
@@ -112,10 +106,7 @@ if let Some(node_value) = tree.get_mut(grandchild) {
 tree.remove(child_node_3);
 
 // Insert a new one.
-let child_node_4 = tree.insert(13);
-
-// Attach it as child of a node.
-tree.append_child(root_node, child_node_4).expect("valid");
+let child_node_4 = tree.insert(13, root_node);
 
 // The tree does not contain `child_node_3` anymore, but it does contain
 // `child_node_4`, even though they are almost certainly at the same index

@@ -2,27 +2,71 @@ extern crate vec_tree;
 use vec_tree::VecTree;
 
 #[test]
-fn can_get_live_value() {
+fn try_insert_root() {
     let mut tree = VecTree::with_capacity(1);
-    let i = tree.try_insert(42).unwrap();
-    assert_eq!(tree[i], 42);
+    let root = tree.try_insert_root(42).unwrap();
+    assert_eq!(tree[root], 42);
+}
+
+#[test]
+fn insert_root() {
+    let mut tree = VecTree::with_capacity(1);
+    let root = tree.insert_root(42);
+    assert_eq!(tree[root], 42);
+}
+
+#[test]
+fn try_insert() {
+    let mut tree = VecTree::with_capacity(3);
+    let root = tree.try_insert_root(0).unwrap();
+    let child_1 = tree.try_insert(1, root).unwrap();
+    let child_2 = tree.try_insert(2, root).unwrap();
+    assert_eq!(tree[root], 0);
+    assert_eq!(tree[child_1], 1);
+    assert_eq!(tree[child_2], 2);
+}
+
+#[test]
+#[should_panic]
+fn try_insert_root_twice() {
+    let mut tree = VecTree::with_capacity(2);
+    let _root = tree.try_insert_root(42).unwrap();
+    let _root2 = tree.try_insert_root(43).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn insert_root_twice() {
+    let mut tree = VecTree::with_capacity(2);
+    let _root = tree.insert_root(42);
+    let _root2 = tree.insert_root(43);
+}
+
+#[test]
+fn remove_a_root_node() {
+    let mut tree = VecTree::with_capacity(1);
+    let root_node1 = tree.try_insert_root(42).unwrap();
+    tree.remove(root_node1);
+    let root_node2 = tree.try_insert_root(43).unwrap();
+    assert_eq!(tree[root_node2], 43);
 }
 
 #[test]
 fn cannot_get_free_value() {
     let mut tree = VecTree::with_capacity(1);
-    let i = tree.try_insert(42).unwrap();
+    let i = tree.try_insert_root(42).unwrap();
     assert_eq!(tree.remove(i).unwrap(), 42);
     assert!(!tree.contains(i));
 }
 
 #[test]
 fn cannot_get_other_generation_value() {
-    let mut tree = VecTree::with_capacity(1);
-    let i = tree.try_insert(42).unwrap();
+    let mut tree = VecTree::with_capacity(2);
+    let root_node = tree.try_insert_root(42).unwrap();
+    let i = tree.try_insert(42, root_node).unwrap();
     assert_eq!(tree.remove(i).unwrap(), 42);
     assert!(!tree.contains(i));
-    let j = tree.try_insert(42).unwrap();
+    let j = tree.try_insert(42, root_node).unwrap();
     assert!(!tree.contains(i));
     assert_eq!(tree[j], 42);
     assert!(i != j);
@@ -30,15 +74,19 @@ fn cannot_get_other_generation_value() {
 
 #[test]
 fn try_insert_when_full() {
-    let mut tree = VecTree::with_capacity(1);
-    tree.try_insert(42).unwrap();
-    assert_eq!(tree.try_insert(42).unwrap_err(), 42);
+    let mut tree = VecTree::with_capacity(2);
+    let root_node = tree.try_insert_root(42).unwrap();
+    let _child = tree.try_insert(42, root_node).unwrap();
+    assert_eq!(tree.try_insert(42, root_node).unwrap_err(), 42);
 }
 
 #[test]
 fn insert_many_and_cause_doubling() {
     let mut tree = VecTree::new();
-    let indices: Vec<_> = (0..1000).map(|i| tree.insert(i * i)).collect();
+
+    let root = tree.try_insert_root(0).unwrap();
+
+    let indices: Vec<_> = (0..1000).map(|i| tree.insert(i * i, root)).collect();
     for (i, idx) in indices.iter().cloned().enumerate() {
         assert_eq!(tree.remove(idx).unwrap(), i * i);
         assert!(!tree.contains(idx));
@@ -56,7 +104,7 @@ fn capacity_and_reserve() {
 #[test]
 fn get_mut() {
     let mut tree = VecTree::new();
-    let idx = tree.insert(5);
+    let idx = tree.insert_root(5);
     tree[idx] += 1;
     assert_eq!(tree[idx], 6);
 }
@@ -65,7 +113,7 @@ fn get_mut() {
 #[should_panic]
 fn index_deleted_item() {
     let mut tree = VecTree::new();
-    let idx = tree.insert(42);
+    let idx = tree.insert_root(42);
     tree.remove(idx);
     tree[idx];
 }
@@ -73,18 +121,13 @@ fn index_deleted_item() {
 #[test]
 fn check_the_validity_of_the_tree_after_remove() {
     let mut tree: VecTree<usize> = VecTree::with_capacity(4);
-    let root = tree.try_insert(0).unwrap();
-    let child1 = tree.try_insert(1).unwrap();
-    let child2 = tree.try_insert(2).unwrap();
-    let child3 = tree.try_insert(3).unwrap();
-
-    tree.append_child(root, child1).expect("valid");
-    tree.append_child(root, child2).expect("valid");
-    tree.append_child(root, child3).expect("valid");
+    let root = tree.try_insert_root(0).unwrap();
+    let child1 = tree.try_insert(1, root).unwrap();
+    let child2 = tree.try_insert(2, root).unwrap();
+    let child3 = tree.try_insert(3, root).unwrap();
 
     tree.remove(child3);
-    let child4 = tree.try_insert(4).unwrap();
-    tree.append_child(root, child4).expect("valid");
+    tree.try_insert(4, root).unwrap();
 
     assert_eq!(
         tree.children(root)
@@ -94,8 +137,7 @@ fn check_the_validity_of_the_tree_after_remove() {
     );
 
     tree.remove(child2);
-    let child5 = tree.try_insert(5).unwrap();
-    tree.append_child(root, child5).expect("valid");
+    tree.try_insert(5, root).unwrap();
 
     assert_eq!(
         tree.children(root)
@@ -105,8 +147,7 @@ fn check_the_validity_of_the_tree_after_remove() {
     );
 
     tree.remove(child1);
-    let child6 = tree.try_insert(6).unwrap();
-    tree.append_child(root, child6).expect("valid");
+    tree.try_insert(6, root).unwrap();
 
     assert_eq!(
         tree.children(root)
@@ -119,10 +160,9 @@ fn check_the_validity_of_the_tree_after_remove() {
 #[test]
 fn check_remove_with_one_child() {
     let mut tree: VecTree<usize> = VecTree::with_capacity(2);
-    let root = tree.try_insert(0).unwrap();
+    let root = tree.try_insert_root(0).unwrap();
 
-    let child1 = tree.try_insert(1).unwrap();
-    tree.append_child(root, child1).expect("valid");
+    let child1 = tree.try_insert(1, root).unwrap();
     tree.remove(child1);
 
     assert_eq!(
@@ -132,8 +172,7 @@ fn check_remove_with_one_child() {
         []
     );
 
-    let child2 = tree.try_insert(2).unwrap();
-    tree.append_child(root, child2).expect("valid");
+    let child2 = tree.try_insert(2, root).unwrap();
 
     assert_eq!(
         tree.children(root)
@@ -153,40 +192,34 @@ fn check_remove_with_one_child() {
 }
 
 #[test]
-fn check_children_removed_on_remove() {}
-
-#[test]
 fn out_of_bounds_get_with_index_from_other_tree() {
     let mut tree1 = VecTree::with_capacity(1);
-    let tree2 = VecTree::<usize>::with_capacity(1);
-    tree1.insert(0);
-    let idx = tree1.insert(42);
-    assert!(tree2.get(idx).is_none());
+    let mut tree2 = VecTree::with_capacity(1);
+    let root_tree1 = tree1.insert_root(1);
+    let _root_tree2 = tree2.insert_root(2);
+    let child_tree1 = tree1.insert(2, root_tree1);
+    assert!(tree2.get(child_tree1).is_none());
 }
 
 #[test]
 fn out_of_bounds_remove_with_index_from_other_tree() {
     let mut tree1 = VecTree::with_capacity(1);
-    let mut tree2 = VecTree::<usize>::with_capacity(1);
-    tree1.insert(0);
-    let idx = tree1.insert(42);
-    assert!(tree2.remove(idx).is_none());
+    let mut tree2 = VecTree::with_capacity(1);
+    let root_tree1 = tree1.insert_root(1);
+    let _root_tree2 = tree2.insert_root(2);
+    let child_tree1 = tree1.insert(2, root_tree1);
+    assert!(tree2.remove(child_tree1).is_none());
 }
 
 #[test]
 fn add_children_and_iterate_over_it() {
     let mut tree = VecTree::new();
 
-    let root_node = tree.insert(1);
-    let child_node_1 = tree.insert(2);
-    let child_node_2 = tree.insert(3);
-    let child_node_3 = tree.insert(4);
-    let grandchild = tree.insert(5);
-
-    tree.append_child(root_node, child_node_1).expect("valid");
-    tree.append_child(root_node, child_node_2).expect("valid");
-    tree.append_child(root_node, child_node_3).expect("valid");
-    tree.append_child(child_node_3, grandchild).expect("valid");
+    let root_node = tree.insert_root(1);
+    let child_node_1 = tree.insert(2, root_node);
+    let child_node_2 = tree.insert(3, root_node);
+    let child_node_3 = tree.insert(4, root_node);
+    let _grandchild = tree.insert(5, child_node_3);
 
     assert_eq!(
         tree.children(root_node)
@@ -221,14 +254,10 @@ fn add_children_and_iterate_over_it() {
 fn iterate_over_preceding_siblings() {
     let mut tree = VecTree::new();
 
-    let root_node = tree.insert(1);
-    let child_node_1 = tree.insert(2);
-    let child_node_2 = tree.insert(3);
-    let child_node_3 = tree.insert(4);
-
-    tree.append_child(root_node, child_node_1).expect("valid");
-    tree.append_child(root_node, child_node_2).expect("valid");
-    tree.append_child(root_node, child_node_3).expect("valid");
+    let root_node = tree.insert_root(1);
+    let child_node_1 = tree.insert(2, root_node);
+    let child_node_2 = tree.insert(3, root_node);
+    let child_node_3 = tree.insert(4, root_node);
 
     assert_eq!(
         tree.preceding_siblings(root_node)
@@ -263,14 +292,10 @@ fn iterate_over_preceding_siblings() {
 fn iterate_over_following_siblings() {
     let mut tree = VecTree::new();
 
-    let root_node = tree.insert(1);
-    let child_node_1 = tree.insert(2);
-    let child_node_2 = tree.insert(3);
-    let child_node_3 = tree.insert(4);
-
-    tree.append_child(root_node, child_node_1).expect("valid");
-    tree.append_child(root_node, child_node_2).expect("valid");
-    tree.append_child(root_node, child_node_3).expect("valid");
+    let root_node = tree.insert_root(1);
+    let child_node_1 = tree.insert(2, root_node);
+    let child_node_2 = tree.insert(3, root_node);
+    let child_node_3 = tree.insert(4, root_node);
 
     assert_eq!(
         tree.following_siblings(root_node)
@@ -305,14 +330,10 @@ fn iterate_over_following_siblings() {
 fn iterate_over_ancestors() {
     let mut tree = VecTree::new();
 
-    let root_node = tree.insert(1);
-    let child_node_1 = tree.insert(2);
-    let child_node_2 = tree.insert(3);
-    let grandchild = tree.insert(5);
-
-    tree.append_child(root_node, child_node_1).expect("valid");
-    tree.append_child(root_node, child_node_2).expect("valid");
-    tree.append_child(child_node_2, grandchild).expect("valid");
+    let root_node = tree.insert_root(1);
+    let child_node_1 = tree.insert(2, root_node);
+    let child_node_2 = tree.insert(3, root_node);
+    let grandchild = tree.insert(5, child_node_2);
 
     assert_eq!(
         tree.ancestors(root_node)
@@ -351,22 +372,14 @@ fn iterate_over_descendants() {
     // | `-5
     // `-2
     // `-3
-    let root_node = tree.insert(0);
-    let node_1 = tree.insert(1);
-    let node_2 = tree.insert(2);
-    let node_3 = tree.insert(3);
-    let node_4 = tree.insert(4);
-    let node_5 = tree.insert(5);
-    let node_6 = tree.insert(6);
-    let node_7 = tree.insert(7);
-
-    tree.append_child(root_node, node_1).expect("valid");
-    tree.append_child(root_node, node_2).expect("valid");
-    tree.append_child(root_node, node_3).expect("valid");
-    tree.append_child(node_1, node_4).expect("valid");
-    tree.append_child(node_1, node_5).expect("valid");
-    tree.append_child(node_4, node_6).expect("valid");
-    tree.append_child(node_2, node_7).expect("valid");
+    let root_node = tree.insert_root(0);
+    let node_1 = tree.insert(1, root_node);
+    let node_2 = tree.insert(2, root_node);
+    let _node_3 = tree.insert(3, root_node);
+    let node_4 = tree.insert(4, node_1);
+    let _node_5 = tree.insert(5, node_1);
+    let _node_6 = tree.insert(6, node_4);
+    let _node_7 = tree.insert(7, node_2);
 
     let descendants = tree
         .descendants(root_node)
@@ -386,22 +399,14 @@ fn iterate_over_descendants_with_depth() {
     // | `-5
     // `-2
     // `-3
-    let root_node = tree.insert(0);
-    let node_1 = tree.insert(1);
-    let node_2 = tree.insert(2);
-    let node_3 = tree.insert(3);
-    let node_4 = tree.insert(4);
-    let node_5 = tree.insert(5);
-    let node_6 = tree.insert(6);
-    let node_7 = tree.insert(7);
-
-    tree.append_child(root_node, node_1).expect("valid");
-    tree.append_child(root_node, node_2).expect("valid");
-    tree.append_child(root_node, node_3).expect("valid");
-    tree.append_child(node_1, node_4).expect("valid");
-    tree.append_child(node_1, node_5).expect("valid");
-    tree.append_child(node_4, node_6).expect("valid");
-    tree.append_child(node_2, node_7).expect("valid");
+    let root_node = tree.insert_root(0);
+    let node_1 = tree.insert(1, root_node);
+    let node_2 = tree.insert(2, root_node);
+    let _node_3 = tree.insert(3, root_node);
+    let node_4 = tree.insert(4, node_1);
+    let _node_5 = tree.insert(5, node_1);
+    let _node_6 = tree.insert(6, node_4);
+    let _node_7 = tree.insert(7, node_2);
 
     let descendants = tree
         .descendants_with_depth(root_node)
@@ -429,16 +434,11 @@ fn check_descendants_are_removed() {
 
     // 0-1-3-4
     //   `-2
-    let root_node = tree.try_insert(0).unwrap();
-    let node_1 = tree.try_insert(1).unwrap();
-    let node_2 = tree.try_insert(2).unwrap();
-    let node_3 = tree.try_insert(3).unwrap();
-    let node_4 = tree.try_insert(4).unwrap();
-
-    tree.append_child(root_node, node_1).expect("valid");
-    tree.append_child(node_1, node_2).expect("valid");
-    tree.append_child(node_1, node_3).expect("valid");
-    tree.append_child(node_3, node_4).expect("valid");
+    let root_node = tree.try_insert_root(0).unwrap();
+    let node_1 = tree.try_insert(1, root_node).unwrap();
+    let _node_2 = tree.try_insert(2, node_1).unwrap();
+    let node_3 = tree.try_insert(3, node_1).unwrap();
+    let _node_4 = tree.try_insert(4, node_3).unwrap();
 
     let descendants = tree
         .descendants(root_node)
@@ -452,15 +452,10 @@ fn check_descendants_are_removed() {
 
     // 0-5-7-8
     //   `-6
-    let node_5 = tree.try_insert(5).unwrap();
-    let node_6 = tree.try_insert(6).unwrap();
-    let node_7 = tree.try_insert(7).unwrap();
-    let node_8 = tree.try_insert(8).unwrap();
-
-    tree.append_child(root_node, node_5).expect("valid");
-    tree.append_child(node_5, node_6).expect("valid");
-    tree.append_child(node_5, node_7).expect("valid");
-    tree.append_child(node_7, node_8).expect("valid");
+    let node_5 = tree.try_insert(5, root_node).unwrap();
+    let _node_6 = tree.try_insert(6, node_5).unwrap();
+    let node_7 = tree.try_insert(7, node_5).unwrap();
+    let _node_8 = tree.try_insert(8, node_7).unwrap();
 
     let descendants = tree
         .descendants(root_node)

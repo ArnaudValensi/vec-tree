@@ -83,17 +83,11 @@ use vec_tree::VecTree;
 let mut tree = VecTree::new();
 
 // Insert some elements into the tree.
-let root_node = tree.insert(1);
-let child_node_1 = tree.insert(10);
-let child_node_2 = tree.insert(11);
-let child_node_3 = tree.insert(12);
-let grandchild = tree.insert(100);
-
-// Set the relation between them.
-tree.append_child(root_node, child_node_1).expect("valid");
-tree.append_child(root_node, child_node_2).expect("valid");
-tree.append_child(root_node, child_node_3).expect("valid");
-tree.append_child(child_node_3, grandchild).expect("valid");
+let root_node = tree.insert_root(1);
+let child_node_1 = tree.insert(10, root_node);
+let child_node_2 = tree.insert(11, root_node);
+let child_node_3 = tree.insert(12, root_node);
+let grandchild = tree.insert(100, child_node_3);
 
 // Inserted elements can be accessed infallibly via indexing (and missing
 // entries will panic).
@@ -111,10 +105,7 @@ if let Some(node_value) = tree.get_mut(grandchild) {
 tree.remove(child_node_3);
 
 // Insert a new one.
-let child_node_4 = tree.insert(13);
-
-// Attach it as child of a node.
-tree.append_child(root_node, child_node_4).expect("valid");
+let child_node_4 = tree.insert(13, root_node);
 
 // The tree does not contain `child_node_3` anymore, but it does contain
 // `child_node_4`, even though they are almost certainly at the same index
@@ -141,6 +132,7 @@ use std::{fmt, mem};
 #[derive(Debug)]
 pub struct VecTree<T> {
     nodes: Arena<Node<T>>,
+    root_index: Option<Index>,
 }
 
 #[derive(Clone, Debug)]
@@ -169,6 +161,7 @@ impl<T> VecTree<T> {
     pub fn with_capacity(n: usize) -> VecTree<T> {
         VecTree {
             nodes: Arena::with_capacity(n),
+            root_index: None,
         }
     }
 
@@ -178,7 +171,55 @@ impl<T> VecTree<T> {
     }
 
     #[inline]
-    pub fn try_insert(&mut self, data: T) -> Result<Index, T> {
+    pub fn try_insert(&mut self, data: T, parent_id: Index) -> Result<Index, T> {
+        let node_result = self.try_create_node(data);
+
+        match node_result {
+            Ok(node) => {
+                self.append_child(parent_id, node);
+                node_result
+            }
+            Err(err) => Err(err),
+        }
+    }
+
+    #[inline]
+    pub fn insert(&mut self, data: T, parent_id: Index) -> Index {
+        let node = self.create_node(data);
+
+        self.append_child(parent_id, node);
+
+        node
+    }
+
+    #[inline]
+    pub fn try_insert_root(&mut self, data: T) -> Result<Index, T> {
+        if self.root_index.is_some() {
+            panic!("A root node already exists");
+        }
+
+        match self.try_create_node(data) {
+            Ok(node_id) => {
+                self.root_index = Some(node_id);
+                Ok(node_id)
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    #[inline]
+    pub fn insert_root(&mut self, data: T) -> Index {
+        if self.root_index.is_some() {
+            panic!("A root node already exists");
+        }
+
+        let node_id = self.create_node(data);
+        self.root_index = Some(node_id);
+        node_id
+    }
+
+    #[inline]
+    fn try_create_node(&mut self, data: T) -> Result<Index, T> {
         let new_node = Node {
             parent: None,
             first_child: None,
@@ -195,7 +236,7 @@ impl<T> VecTree<T> {
     }
 
     #[inline]
-    pub fn insert(&mut self, data: T) -> Index {
+    fn create_node(&mut self, data: T) -> Index {
         let new_node = Node {
             parent: None,
             first_child: None,
@@ -256,6 +297,13 @@ impl<T> VecTree<T> {
             self.nodes.remove(node_id);
         }
 
+        // Set root_index to None if needed
+        if let Some(root_index) = self.root_index {
+            if root_index == node_id {
+                self.root_index = None;
+            }
+        }
+
         Some(node.data)
     }
 
@@ -264,11 +312,7 @@ impl<T> VecTree<T> {
     }
 
     #[inline]
-    pub fn append_child(
-        &mut self,
-        node_id: Index,
-        new_child_id: Index,
-    ) -> Result<(), &'static str> {
+    fn append_child(&mut self, node_id: Index, new_child_id: Index) {
         self.detach(new_child_id);
 
         let last_child_opt;
@@ -276,11 +320,11 @@ impl<T> VecTree<T> {
             let (node_opt, new_child_node_opt) = self.nodes.get2_mut(node_id, new_child_id);
 
             if node_opt.is_none() {
-                return Err("The node you are trying to append to is invalid");
+                panic!("The node you are trying to append to is invalid");
             }
 
             if new_child_node_opt.is_none() {
-                return Err("The node you are trying to append is invalid");
+                panic!("The node you are trying to append is invalid");
             }
 
             let node = node_opt.unwrap();
@@ -301,8 +345,6 @@ impl<T> VecTree<T> {
             debug_assert!(self.nodes[last_child].next_sibling.is_none());
             self.nodes[last_child].next_sibling = Some(new_child_id);
         }
-
-        Ok(())
     }
 
     // TODO: return error instead of panic
