@@ -402,6 +402,23 @@ impl<T> VecTree<T> {
         self.nodes.capacity()
     }
 
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        self.root_index = None;
+    }
+
+    pub fn parent(&self, node_id: Index) -> Option<&T> {
+        if let Some(node) = self.nodes.get(node_id) {
+            if let Some(node_id) = node.parent {
+                if let Some(node) = self.nodes.get(node_id) {
+                    return Some(&node.data);
+                }
+            }
+        }
+
+        None
+    }
+
     /// Return an iterator of references to this node’s children.
     pub fn children(&self, node_id: Index) -> ChildrenIter<T> {
         ChildrenIter {
