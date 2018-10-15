@@ -135,7 +135,8 @@ assert_eq!(descendants, [1, 10, 13, 11]);
 #![forbid(unsafe_code)]
 
 extern crate generational_arena;
-use generational_arena::{Arena, Index};
+use generational_arena::Arena;
+pub use generational_arena::Index;
 
 use core::ops;
 use std::{fmt, mem};
