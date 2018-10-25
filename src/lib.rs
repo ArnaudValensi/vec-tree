@@ -408,16 +408,11 @@ impl<T> VecTree<T> {
         self.root_index = None;
     }
 
-    pub fn parent(&self, node_id: Index) -> Option<&T> {
-        if let Some(node) = self.nodes.get(node_id) {
-            if let Some(node_id) = node.parent {
-                if let Some(node) = self.nodes.get(node_id) {
-                    return Some(&node.data);
-                }
-            }
+    pub fn parent(&self, node_id: Index) -> Option<Index> {
+        match self.nodes.get(node_id) {
+            Some(node) => node.parent,
+            _ => None,
         }
-
-        None
     }
 
     /// Return an iterator of references to this node’s children.

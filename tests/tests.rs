@@ -212,6 +212,24 @@ fn out_of_bounds_remove_with_index_from_other_tree() {
 }
 
 #[test]
+fn get_parent() {
+    let mut tree = VecTree::new();
+
+    let grand_child = {
+        let root_node = tree.insert_root(1);
+        let child = tree.insert(2, root_node);
+
+        tree.insert(3, child)
+    };
+
+    let child = tree.parent(grand_child).unwrap();
+    assert_eq!(tree[child], 2);
+    let root_node = tree.parent(child).unwrap();
+    assert_eq!(tree[root_node], 1);
+    assert_eq!(tree.parent(root_node), None);
+}
+
+#[test]
 fn add_children_and_iterate_over_it() {
     let mut tree = VecTree::new();
 
