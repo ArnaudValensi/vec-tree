@@ -398,8 +398,11 @@ impl<T> VecTree<T> {
         }
     }
 
+    pub fn get_root_index(&self) -> Option<Index> {
+        self.root_index
+    }
+
     pub fn capacity(&self) -> usize {
-        println!("capacity");
         self.nodes.capacity()
     }
 
