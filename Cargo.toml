@@ -14,4 +14,4 @@ version = "0.1.0"
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-generational-arena = { path = "/Users/arnaudvalensi/dev/perso/rust/generational-arena" }
+generational-arena = "0.2.0"

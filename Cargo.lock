@@ -5,7 +5,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "generational-arena"
-version = "0.1.0"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cfg-if 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -14,8 +15,9 @@ dependencies = [
 name = "vec-tree"
 version = "0.1.0"
 dependencies = [
- "generational-arena 0.1.0",
+ "generational-arena 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
 "checksum cfg-if 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0c4e7bb64a8ebb0d856483e1e682ea3422f883c5f5615a90d51a2c82fe87fdd3"
+"checksum generational-arena 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7519f72ae2a5912271755e9009d4fc72d58e2d901c90f3410cdb66247f606485"
