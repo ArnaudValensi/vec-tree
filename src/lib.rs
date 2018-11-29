@@ -141,7 +141,11 @@ pub use generational_arena::Index;
 use core::ops;
 use std::{fmt, mem};
 
-#[derive(Debug)]
+/// The `VecTree` allows inserting and removing elements that are referred to by
+/// `Index`.
+///
+/// [See the module-level documentation for example usage and motivation.](./index.html)
+#[derive(Clone, Debug)]
 pub struct VecTree<T> {
     nodes: Arena<Node<T>>,
     root_index: Option<Index>,
@@ -229,13 +233,13 @@ impl<T> VecTree<T> {
         self.nodes.reserve(additional_capacity);
     }
 
-    /// Attempts to insert `value` into the tree using existing capacity.
+    /// Attempts to insert `data` into the tree using existing capacity.
     ///
     /// This method will never allocate new capacity in the tree.
     ///
-    /// If insertion succeeds, then the `value`'s index is returned. If
-    /// insertion fails, then `Err(value)` is returned to give ownership of
-    /// `value` back to the caller.
+    /// If insertion succeeds, then the `data`'s index is returned. If
+    /// insertion fails, then `Err(data)` is returned to give ownership of
+    /// `data` back to the caller.
     ///
     /// # Examples
     ///
@@ -269,9 +273,9 @@ impl<T> VecTree<T> {
         }
     }
 
-    /// Insert `value` into the tree, allocating more capacity if necessary.
+    /// Insert `data` into the tree, allocating more capacity if necessary.
     ///
-    /// The `value`'s associated index in the tree is returned.
+    /// The `data`'s associated index in the tree is returned.
     ///
     /// # Examples
     ///
@@ -296,6 +300,33 @@ impl<T> VecTree<T> {
         node
     }
 
+    /// Attempts to insert `data` into the tree as root node using existing
+    /// capacity.
+    ///
+    /// This method will never allocate new capacity in the tree.
+    ///
+    /// If insertion succeeds, then the `data`'s index is returned. If
+    /// insertion fails, then `Err(data)` is returned to give ownership of
+    /// `data` back to the caller.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::new();
+    ///
+    /// match tree.try_insert_root(42) {
+    ///     Ok(idx) => {
+    ///         // Insertion succeeded.
+    ///         assert_eq!(tree[idx], 42);
+    ///     }
+    ///     Err(x) => {
+    ///         // Insertion failed.
+    ///         assert_eq!(x, 42);
+    ///     }
+    /// };
+    /// ```
     #[inline]
     pub fn try_insert_root(&mut self, data: T) -> Result<Index, T> {
         if self.root_index.is_some() {
@@ -311,6 +342,23 @@ impl<T> VecTree<T> {
         }
     }
 
+    /// Insert `data` into the tree as a root node, allocating more
+    /// capacity if necessary.
+    ///
+    /// The `data`'s associated index in the tree is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::with_capacity(1);
+    /// assert_eq!(tree.capacity(), 1);
+    ///
+    /// let root = tree.insert_root(42);
+    ///
+    /// assert_eq!(tree[root], 42);
+    /// ```
     #[inline]
     pub fn insert_root(&mut self, data: T) -> Index {
         if self.root_index.is_some() {
@@ -554,7 +602,22 @@ impl<T> VecTree<T> {
             _ => None,
         }
     }
-
+    /// Get the root node index from the tree.
+    ///
+    /// If no root node is created in the tree, None is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::new();
+    /// assert_eq!(tree.get_root_index(), None);
+    ///
+    /// tree.insert_root(42);
+    /// let root = tree.get_root_index().unwrap();
+    /// assert_eq!(tree[root], 42);
+    /// ```
     pub fn get_root_index(&self) -> Option<Index> {
         self.root_index
     }
