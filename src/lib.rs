@@ -483,9 +483,8 @@ impl<T> VecTree<T> {
         }
     }
 
-    // TODO: return error instead of panic
     #[inline]
-    pub fn detach(&mut self, node_id: Index) {
+    fn detach(&mut self, node_id: Index) {
         let (parent, previous_sibling, next_sibling) = {
             let node = &mut self.nodes[node_id];
             (
