@@ -166,10 +166,40 @@ impl<T> Default for VecTree<T> {
 }
 
 impl<T> VecTree<T> {
+    /// Constructs a new, empty `VecTree`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::<usize>::new();
+    /// # let _ = tree;
+    /// ```
     pub fn new() -> VecTree<T> {
         VecTree::with_capacity(DEFAULT_CAPACITY)
     }
 
+    /// Constructs a new, empty `VecTree<T>` with the specified capacity.
+    ///
+    /// The `VecTree<T>` will be able to hold `n` elements without further allocation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::with_capacity(10);
+    /// let root = tree.try_insert_root(0).unwrap();
+    ///
+    /// // These insertions will not require further allocation.
+    /// for i in 1..10 {
+    ///     assert!(tree.try_insert(i, root).is_ok());
+    /// }
+    ///
+    /// // But now we are at capacity, and there is no more room.
+    /// assert!(tree.try_insert(99, root).is_err());
+    /// ```
     pub fn with_capacity(n: usize) -> VecTree<T> {
         VecTree {
             nodes: Arena::with_capacity(n),
@@ -177,11 +207,55 @@ impl<T> VecTree<T> {
         }
     }
 
+
+    /// Allocate space for `additional_capacity` more elements in the tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this causes the capacity to overflow.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::with_capacity(10);
+    /// tree.reserve(5);
+    /// assert_eq!(tree.capacity(), 15);
+    /// # let _: VecTree<usize> = tree;
+    /// ```
     #[inline]
     pub fn reserve(&mut self, additional_capacity: usize) {
         self.nodes.reserve(additional_capacity);
     }
 
+    /// Attempts to insert `value` into the tree using existing capacity.
+    ///
+    /// This method will never allocate new capacity in the tree.
+    ///
+    /// If insertion succeeds, then the `value`'s index is returned. If
+    /// insertion fails, then `Err(value)` is returned to give ownership of
+    /// `value` back to the caller.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::new();
+    /// let root = tree.insert_root(0);
+    ///
+    /// match tree.try_insert(42, root) {
+    ///     Ok(idx) => {
+    ///         // Insertion succeeded.
+    ///         assert_eq!(tree[idx], 42);
+    ///     }
+    ///     Err(x) => {
+    ///         // Insertion failed.
+    ///         assert_eq!(x, 42);
+    ///     }
+    /// };
+    /// ```
     #[inline]
     pub fn try_insert(&mut self, data: T, parent_id: Index) -> Result<Index, T> {
         let node_result = self.try_create_node(data);
@@ -195,6 +269,24 @@ impl<T> VecTree<T> {
         }
     }
 
+    /// Insert `value` into the tree, allocating more capacity if necessary.
+    ///
+    /// The `value`'s associated index in the tree is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::with_capacity(1);
+    /// assert_eq!(tree.capacity(), 1);
+    ///
+    /// let root = tree.insert_root(0);
+    ///
+    /// let idx = tree.insert(42, root);
+    /// assert_eq!(tree[idx], 42);
+    /// assert_eq!(tree.capacity(), 2);
+    /// ```
     #[inline]
     pub fn insert(&mut self, data: T, parent_id: Index) -> Index {
         let node = self.create_node(data);
@@ -261,6 +353,22 @@ impl<T> VecTree<T> {
         self.nodes.insert(new_node)
     }
 
+    /// Remove the element at index `node_id` from the tree.
+    ///
+    /// If the element at index `node_id` is still in the tree, then it is
+    /// returned. If it is not in the tree, then `None` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::new();
+    /// let root = tree.insert_root(42);
+    ///
+    /// assert_eq!(tree.remove(root), Some(42));
+    /// assert_eq!(tree.remove(root), None);
+    /// ```
     pub fn remove(&mut self, node_id: Index) -> Option<T> {
         if !self.contains(node_id) {
             return None;
@@ -319,8 +427,24 @@ impl<T> VecTree<T> {
         Some(node.data)
     }
 
-    pub fn contains(&self, i: Index) -> bool {
-        self.nodes.get(i).is_some()
+    /// Is the element at index `node_id` in the tree?
+    ///
+    /// Returns `true` if the element at `node_id` is in the tree, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::new();
+    /// let root = tree.insert_root(0);
+    ///
+    /// assert!(tree.contains(root));
+    /// tree.remove(root);
+    /// assert!(!tree.contains(root));
+    /// ```
+    pub fn contains(&self, node_id: Index) -> bool {
+        self.nodes.get(node_id).is_some()
     }
 
     #[inline]
@@ -384,6 +508,23 @@ impl<T> VecTree<T> {
         }
     }
 
+    /// Get a shared reference to the element at index `node_id` if it is in the
+    /// tree.
+    ///
+    /// If the element at index `node_id` is not in the tree, then `None` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::new();
+    /// let root = tree.insert_root(42);
+    ///
+    /// assert_eq!(tree.get(root), Some(&42));
+    /// tree.remove(root);
+    /// assert!(tree.get(root).is_none());
+    /// ```
     pub fn get(&self, node_id: Index) -> Option<&T> {
         match self.nodes.get(node_id) {
             Some(Node { ref data, .. }) => Some(data),
@@ -391,6 +532,23 @@ impl<T> VecTree<T> {
         }
     }
 
+    /// Get an exclusive reference to the element at index `node_id` if it is in the
+    /// tree.
+    ///
+    /// If the element at index `node_id` is not in the tree, then `None` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::new();
+    /// let root = tree.insert_root(42);
+    ///
+    /// *tree.get_mut(root).unwrap() += 1;
+    /// assert_eq!(tree.remove(root), Some(43));
+    /// assert!(tree.get_mut(root).is_none());
+    /// ```
     pub fn get_mut(&mut self, node_id: Index) -> Option<&mut T> {
         match self.nodes.get_mut(node_id) {
             Some(Node { ref mut data, .. }) => Some(data),
@@ -402,15 +560,54 @@ impl<T> VecTree<T> {
         self.root_index
     }
 
+    /// Get the capacity of this tree.
+    ///
+    /// The capacity is the maximum number of elements the tree can hold
+    /// without further allocation, including however many it currently
+    /// contains.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::with_capacity(10);
+    /// let root = tree.insert_root(0);
+    ///
+    /// // `try_insert` does not allocate new capacity.
+    /// for i in 1..10 {
+    ///     assert!(tree.try_insert(i, root).is_ok());
+    ///     assert_eq!(tree.capacity(), 10);
+    /// }
+    ///
+    /// // But `insert` will if the root is already at capacity.
+    /// tree.insert(11, root);
+    /// assert!(tree.capacity() > 10);
+    /// ```
     pub fn capacity(&self) -> usize {
         self.nodes.capacity()
     }
 
+    /// Clear all the items inside the tree, but keep its allocation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use vec_tree::VecTree;
+    ///
+    /// let mut tree = VecTree::with_capacity(1);
+    /// let root = tree.insert_root(42);
+    /// tree.insert(43, root); // The capacity is doubled when reached.
+    ///
+    /// tree.clear();
+    /// assert_eq!(tree.capacity(), 2);
+    /// ```
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.root_index = None;
     }
 
+    /// Return an iterator of references to this node’s parent.
     pub fn parent(&self, node_id: Index) -> Option<Index> {
         match self.nodes.get(node_id) {
             Some(node) => node.parent,
